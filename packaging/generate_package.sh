@@ -61,21 +61,27 @@ EOF
 
 install -m 0755 "$SCRIPT_DIR/install.sh" "$STAGING/install.sh"
 
-copy_if() {
+# Every helper is checked in, so a missing one is a mistake, not an option — a silently
+# incomplete package would ship a board with no USB dual-role or no HDMI blanking fix.
+pack() {
     local src="$1"
-    [ -f "$src" ] && cp "$src" "$STAGING/"
+    if [ ! -f "$src" ]; then
+        echo "ERROR: missing $src" >&2
+        exit 1
+    fi
+    cp "$src" "$STAGING/"
 }
 
-copy_if "$ROOT_DIR/scripts/ark-jaj-usb-init.sh"
-copy_if "$ROOT_DIR/scripts/ark-jaj-usb.service"
-copy_if "$ROOT_DIR/scripts/install-ark-hdmi.sh"
-copy_if "$ROOT_DIR/scripts/ark-hdmi-unblank.sh"
-copy_if "$ROOT_DIR/scripts/10-ark-no-blank.conf"
-copy_if "$ROOT_DIR/scripts/10-ark-hdmi-lightdm.conf"
-copy_if "$ROOT_DIR/scripts/99-ark-hdmi.rules"
+pack "$ROOT_DIR/scripts/ark-jaj-usb-init.sh"
+pack "$ROOT_DIR/scripts/ark-jaj-usb.service"
+pack "$ROOT_DIR/scripts/install-ark-hdmi.sh"
+pack "$ROOT_DIR/scripts/ark-hdmi-unblank.sh"
+pack "$ROOT_DIR/scripts/10-ark-no-blank.conf"
+pack "$ROOT_DIR/scripts/10-ark-hdmi-lightdm.conf"
+pack "$ROOT_DIR/scripts/99-ark-hdmi.rules"
 if [ "$SYS_POWER" = "1" ]; then
-    copy_if "$ROOT_DIR/scripts/ark-jaj-sys-power.py"
-    copy_if "$ROOT_DIR/scripts/ark-jaj-sys-power.service"
+    pack "$ROOT_DIR/scripts/ark-jaj-sys-power.py"
+    pack "$ROOT_DIR/scripts/ark-jaj-sys-power.service"
 fi
 
 OUT_DIR="$ROOT_DIR/dist"
