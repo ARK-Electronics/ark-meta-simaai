@@ -12,7 +12,7 @@ The SoM usually already runs a Modalix eLxr image. Carrier support is a **DT
 overlay** (`ark-pab.dtbo`), not a full L4T-style reflash:
 
 ```bash
-# From meta-ark-simaai on the host (board at 192.168.7.50)
+# From ark-meta-simaai on the host (board at 192.168.7.50)
 ./provision.sh PAB sima@192.168.7.50
 ```
 

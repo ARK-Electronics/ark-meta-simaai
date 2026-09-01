@@ -8,7 +8,7 @@
 #   BOARD=sima@192.168.0.50 ./provision_from_package.sh jaj
 set -euo pipefail
 
-REPO="ARK-Electronics/meta-ark-simaai"
+REPO="ARK-Electronics/ark-meta-simaai"
 API_URL="https://api.github.com/repos/$REPO/releases"
 CACHE_BASE="${ARK_MODALIX_CACHE:-$HOME/.ark-modalix-cache}"
 

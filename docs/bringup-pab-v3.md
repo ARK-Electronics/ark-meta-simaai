@@ -40,7 +40,7 @@ Or overlay only, over serial (no eth required):
 ## 2. Deploy board support (live eMMC, when eth works)
 
 ```bash
-# From meta-ark-simaai on the host (board DHCP or static on the office LAN)
+# From ark-meta-simaai on the host (board DHCP or static on the office LAN)
 ./provision.sh PAB_V3 sima@192.168.7.143
 ```
 

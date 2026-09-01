@@ -47,7 +47,7 @@ jobs:
           Overlay package for stock SiMa eLxr on ${PRODUCT}.
 
           \`\`\`
-          curl -LO https://raw.githubusercontent.com/ARK-Electronics/meta-ark-simaai/main/packaging/provision_from_package.sh
+          curl -LO https://raw.githubusercontent.com/ARK-Electronics/ark-meta-simaai/main/packaging/provision_from_package.sh
           chmod +x provision_from_package.sh
           BOARD=sima@<ip> ./provision_from_package.sh ${TAG}
           \`\`\`

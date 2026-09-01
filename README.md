@@ -1,4 +1,4 @@
-# meta-ark-simaai
+# ark-meta-simaai
 
 ARK carrier support for a [SiMa.ai Modalix](https://sima.ai) SoM. The SoM keeps SiMa eLxr on eMMC; this repo adds the carrier device-tree overlay, USB/HDMI helpers, and (via Yocto) optional recovery images.
 
@@ -18,7 +18,7 @@ Workflow matches [`ark_jetson_kernel`](https://github.com/ARK-Electronics/ark_je
 eLxr is already on the module. On a Debian/Ubuntu host, with SSH to the board (`sima` / `edgeai`):
 
 ```
-curl -LO https://raw.githubusercontent.com/ARK-Electronics/meta-ark-simaai/main/packaging/provision_from_package.sh
+curl -LO https://raw.githubusercontent.com/ARK-Electronics/ark-meta-simaai/main/packaging/provision_from_package.sh
 chmod +x provision_from_package.sh
 BOARD=sima@192.168.0.50 ./provision_from_package.sh jaj        # or pab / pab-v3
 ```

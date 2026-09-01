@@ -94,7 +94,7 @@ else
     echo "    [skip] meta-simaai (already present)"
 fi
 
-# Point workspace at this meta-ark-simaai checkout (symlink so edits live in-repo)
+# Symlink this checkout into the workspace as the Yocto layer name meta-ark-simaai.
 if [ ! -e meta-ark-simaai ]; then
     ln -sfn "$LAYER_DIR" meta-ark-simaai
     echo "    [link] meta-ark-simaai -> $LAYER_DIR"
@@ -130,7 +130,7 @@ fi
 if ! grep -q 'ARK Modalix carrier overrides' "$LOCAL_CONF" 2>/dev/null; then
     cat >> "$LOCAL_CONF" <<'EOF'
 
-# --- ARK Modalix carrier overrides (added by meta-ark-simaai/setup.sh) ---
+# --- ARK Modalix carrier overrides (added by ark-meta-simaai/setup.sh) ---
 MACHINE = "ark-jaj"
 LICENSE_FLAGS_ACCEPTED += "commercial"
 
@@ -167,7 +167,7 @@ cat <<EOF
   Machine   : ark-jaj  (Just a Jetson + Modalix SoM)
   Build dir : $WS/build
 
-Next steps (from the meta-ark-simaai repo):
+Next steps (from the ark-meta-simaai repo):
 
   Live eLxr overlay (usual path):
        ./provision.sh JAJ sima@<board-ip>
