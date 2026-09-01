@@ -62,8 +62,11 @@ if [ "$SERIAL" = "1" ]; then
         echo "ERROR: --serial is PAB_V3 only (KSZ held in reset on stock eLxr)" >&2
         exit 1
     fi
+    # firstboot reads BOARD_IP and PASSWORD from its own environment, so export ours —
+    # otherwise an override here silently disagrees with the serial poke.
+    export BOARD_IP="${BOARD_IP:-192.168.1.20}" PASSWORD
     "$SCRIPT_DIR/scripts/pab-v3-firstboot.sh"
-    BOARD="${BOARD:-sima@${BOARD_IP:-192.168.1.20}}"
+    BOARD="${BOARD:-sima@$BOARD_IP}"
 fi
 
 if [ -z "$BOARD" ]; then
