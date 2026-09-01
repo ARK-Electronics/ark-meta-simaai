@@ -14,6 +14,15 @@ if [ ! -f "$DTBO" ]; then
     exit 1
 fi
 
+# Stock eLxr carries no carrier identity, so a previous stamp is the only thing that can
+# tell us the SoM moved carriers. Not fatal: SoMs get swapped between carriers on the bench.
+if [ -f /etc/ark_modalix ]; then
+    previous=$(sed -n 's/^product=//p' /etc/ark_modalix)
+    if [ -n "$previous" ] && [ "$previous" != "$PRODUCT" ]; then
+        echo "NOTE: replacing the $previous overlay with $PRODUCT"
+    fi
+fi
+
 install -m 0644 "$DTBO" "/boot/boot-0/${OVERLAY_NAME}.dtbo"
 install -m 0644 "$DTBO" "/boot/boot-1/${OVERLAY_NAME}.dtbo"
 mkdir -p /boot/boot-0/overlays /boot/boot-1/overlays
@@ -67,6 +76,7 @@ cp -a /tmp/boot/uboot.env /tmp/boot/uboot-redund.env /boot/
 cat > /etc/ark_modalix << EOF
 product=${PRODUCT}
 overlay=${OVERLAY_NAME}
+model=${EXPECTED_MODEL}
 version=${VERSION}
 commit=${COMMIT}
 EOF
