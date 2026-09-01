@@ -66,7 +66,7 @@ SETUP_INSTALL_DEPS=1 ./setup.sh
 ./setup.sh /path/to/ark-modalix-yocto
 ```
 
-This clones poky scarthgap, `meta-simaai`, OE layers, and links `meta-ark-simaai`.
+This clones poky scarthgap, `meta-simaai`, OE layers, and links `ark-meta-simaai`.
 
 ## 2. Build
 

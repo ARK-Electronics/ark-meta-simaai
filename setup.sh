@@ -94,15 +94,18 @@ else
     echo "    [skip] meta-simaai (already present)"
 fi
 
-# Symlink this checkout into the workspace as the Yocto layer name meta-ark-simaai.
-if [ ! -e meta-ark-simaai ]; then
-    ln -sfn "$LAYER_DIR" meta-ark-simaai
-    echo "    [link] meta-ark-simaai -> $LAYER_DIR"
-elif [ -L meta-ark-simaai ]; then
-    ln -sfn "$LAYER_DIR" meta-ark-simaai
-    echo "    [link] meta-ark-simaai refreshed"
+# Point the Yocto workspace at this checkout.
+if [ -L meta-ark-simaai ]; then
+    rm -f meta-ark-simaai
+fi
+if [ ! -e ark-meta-simaai ]; then
+    ln -sfn "$LAYER_DIR" ark-meta-simaai
+    echo "    [link] ark-meta-simaai -> $LAYER_DIR"
+elif [ -L ark-meta-simaai ]; then
+    ln -sfn "$LAYER_DIR" ark-meta-simaai
+    echo "    [link] ark-meta-simaai refreshed"
 else
-    echo "    [skip] meta-ark-simaai (directory already present)"
+    echo "    [skip] ark-meta-simaai (directory already present)"
 fi
 
 echo "==> Initializing build environment"
@@ -117,12 +120,14 @@ set -u
 BBLAYERS_CONF="$WS/build/conf/bblayers.conf"
 LOCAL_CONF="$WS/build/conf/local.conf"
 
-if ! grep -q 'meta-ark-simaai' "$BBLAYERS_CONF"; then
-    # Insert before the closing quote of BBLAYERS
+if grep -q 'meta-ark-simaai' "$BBLAYERS_CONF"; then
+    sed -i 's|${TOPDIR}/../meta-ark-simaai|${TOPDIR}/../ark-meta-simaai|' "$BBLAYERS_CONF"
+fi
+if ! grep -q 'ark-meta-simaai' "$BBLAYERS_CONF"; then
     if grep -q 'meta-swupdate' "$BBLAYERS_CONF"; then
-        sed -i 's|${TOPDIR}/../meta-swupdate \\|${TOPDIR}/../meta-swupdate \\\n  ${TOPDIR}/../meta-ark-simaai \\|' "$BBLAYERS_CONF"
+        sed -i 's|${TOPDIR}/../meta-swupdate \\|${TOPDIR}/../meta-swupdate \\\n  ${TOPDIR}/../ark-meta-simaai \\|' "$BBLAYERS_CONF"
     else
-        echo "WARNING: could not auto-patch bblayers.conf — add meta-ark-simaai manually"
+        echo "WARNING: could not auto-patch bblayers.conf — add ark-meta-simaai manually"
     fi
 fi
 
