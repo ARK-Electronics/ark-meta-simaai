@@ -94,15 +94,18 @@ else
     echo "    [skip] meta-simaai (already present)"
 fi
 
-# Point workspace at this meta-ark-simaai checkout (symlink so edits live in-repo)
-if [ ! -e meta-ark-simaai ]; then
-    ln -sfn "$LAYER_DIR" meta-ark-simaai
-    echo "    [link] meta-ark-simaai -> $LAYER_DIR"
-elif [ -L meta-ark-simaai ]; then
-    ln -sfn "$LAYER_DIR" meta-ark-simaai
-    echo "    [link] meta-ark-simaai refreshed"
+# Point the Yocto workspace at this checkout.
+if [ -L meta-ark-simaai ]; then
+    rm -f meta-ark-simaai
+fi
+if [ ! -e ark-meta-simaai ]; then
+    ln -sfn "$LAYER_DIR" ark-meta-simaai
+    echo "    [link] ark-meta-simaai -> $LAYER_DIR"
+elif [ -L ark-meta-simaai ]; then
+    ln -sfn "$LAYER_DIR" ark-meta-simaai
+    echo "    [link] ark-meta-simaai refreshed"
 else
-    echo "    [skip] meta-ark-simaai (directory already present)"
+    echo "    [skip] ark-meta-simaai (directory already present)"
 fi
 
 echo "==> Initializing build environment"
@@ -117,12 +120,14 @@ set -u
 BBLAYERS_CONF="$WS/build/conf/bblayers.conf"
 LOCAL_CONF="$WS/build/conf/local.conf"
 
-if ! grep -q 'meta-ark-simaai' "$BBLAYERS_CONF"; then
-    # Insert before the closing quote of BBLAYERS
+if grep -q 'meta-ark-simaai' "$BBLAYERS_CONF"; then
+    sed -i 's|${TOPDIR}/../meta-ark-simaai|${TOPDIR}/../ark-meta-simaai|' "$BBLAYERS_CONF"
+fi
+if ! grep -q 'ark-meta-simaai' "$BBLAYERS_CONF"; then
     if grep -q 'meta-swupdate' "$BBLAYERS_CONF"; then
-        sed -i 's|${TOPDIR}/../meta-swupdate \\|${TOPDIR}/../meta-swupdate \\\n  ${TOPDIR}/../meta-ark-simaai \\|' "$BBLAYERS_CONF"
+        sed -i 's|${TOPDIR}/../meta-swupdate \\|${TOPDIR}/../meta-swupdate \\\n  ${TOPDIR}/../ark-meta-simaai \\|' "$BBLAYERS_CONF"
     else
-        echo "WARNING: could not auto-patch bblayers.conf — add meta-ark-simaai manually"
+        echo "WARNING: could not auto-patch bblayers.conf — add ark-meta-simaai manually"
     fi
 fi
 
@@ -130,7 +135,7 @@ fi
 if ! grep -q 'ARK Modalix carrier overrides' "$LOCAL_CONF" 2>/dev/null; then
     cat >> "$LOCAL_CONF" <<'EOF'
 
-# --- ARK Modalix carrier overrides (added by meta-ark-simaai/setup.sh) ---
+# --- ARK Modalix carrier overrides (added by ark-meta-simaai/setup.sh) ---
 MACHINE = "ark-jaj"
 LICENSE_FLAGS_ACCEPTED += "commercial"
 
@@ -167,19 +172,15 @@ cat <<EOF
   Machine   : ark-jaj  (Just a Jetson + Modalix SoM)
   Build dir : $WS/build
 
-Next steps (from the meta-ark-simaai repo):
+Next steps (from the ark-meta-simaai repo):
 
-  1. Serial console (FTDI on USB-C debug):
-       sudo usermod -aG dialout \$USER && newgrp dialout
-       picocom -b 115200 /dev/ttyUSB0
-       # power-cycle the board; stop at U-Boot with a key if needed
+  Live eLxr overlay (usual path):
+       ./provision.sh JAJ sima@<board-ip>
 
-  2. Build image:
-       ./build.sh ark-jaj
+  Yocto recovery image:
+       ./build.sh JAJ
+       ./flash.sh JAJ --netboot
 
-  3. Flash (after build, board recoverable via netboot or removable NVMe):
-       ./flash.sh --help
-
-Docs: docs/bringup-jaj.md
+Docs: README.md, docs/bringup-jaj.md
 ========================================================================
 EOF

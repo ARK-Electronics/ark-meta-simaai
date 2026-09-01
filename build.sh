@@ -2,24 +2,26 @@
 # Build a SiMa/ARK Modalix image. Analogous to ark_jetson_kernel's build.sh.
 #
 # Usage:
-#   ./build.sh                  # ark-jaj (default)
-#   ./build.sh ark-jaj
-#   ./build.sh ark-pab
-#   ./build.sh ark-pab-v3
-#   ./build.sh ark-can-pab
-#   ./build.sh ark-jaj --upgrade   # also build SWU upgrade package
+#   ./build.sh                  # JAJ (default)
+#   ./build.sh JAJ
+#   ./build.sh PAB
+#   ./build.sh PAB_V3
+#   ./build.sh JAJ --upgrade    # also build SWU upgrade package
 #
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/targets.sh
+source "$SCRIPT_DIR/scripts/targets.sh"
 MACHINE="ark-jaj"
 BUILD_UPGRADE=0
 WS=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        ark-jaj|ark-pab|ark-pab-v3|ark-can-pab|modalix)
-            MACHINE="$1"
+        JAJ|jaj|PAB|pab|PAB_V3|pab-v3|CAN_PAB|can-pab|ark-jaj|ark-pab|ark-pab-v3|ark-can-pab|modalix)
+            TARGET="$(ark_target "$1")"
+            MACHINE="$(ark_yocto_machine "$TARGET")"
             shift ;;
         --upgrade)
             BUILD_UPGRADE=1

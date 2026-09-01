@@ -4,10 +4,9 @@
 # not NVIDIA L4T recovery mode.
 #
 # Usage:
-#   ./flash.sh ark-jaj --device /dev/sdX          # write WIC to block device
-#   ./flash.sh ark-jaj --device /dev/nvme1n1
-#   ./flash.sh ark-jaj --netboot                  # guide + invoke sima-cli netboot
-#   ./flash.sh ark-jaj --image /path/to.wic.gz
+#   ./flash.sh JAJ --device /dev/sdX          # write WIC to block device
+#   ./flash.sh JAJ --netboot                  # sima-cli TFTP + eMMC
+#   ./flash.sh JAJ --image /path/to.wic.gz
 #
 # Notes:
 #   - Modalix SoM boots from on-module eMMC by default (16 GB).
@@ -19,6 +18,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/targets.sh
+source "$SCRIPT_DIR/scripts/targets.sh"
 MACHINE="ark-jaj"
 DEVICE=""
 IMAGE=""
@@ -32,8 +33,9 @@ usage() {
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        ark-jaj|ark-pab|ark-pab-v3|ark-can-pab|modalix)
-            MACHINE="$1"
+        JAJ|jaj|PAB|pab|PAB_V3|pab-v3|CAN_PAB|can-pab|ark-jaj|ark-pab|ark-pab-v3|ark-can-pab|modalix)
+            TARGET="$(ark_target "$1")"
+            MACHINE="$(ark_yocto_machine "$TARGET")"
             shift ;;
         --device)
             DEVICE="$2"
@@ -71,60 +73,7 @@ fi
 DEPLOY="$WS/build/tmp/deploy/images/$MACHINE"
 
 if [ "$NETBOOT" = "1" ]; then
-    cat <<'EOF'
-========================================================================
-  Netboot + eMMC flash (SiMa recovery path)
-========================================================================
-
-Hardware:
-  1. Serial:  USB-C debug (FTDI) -> host  =>  /dev/ttyUSB0 @ 115200
-  2. Ethernet: carrier GbE <-> host NIC (direct cable is fine)
-  3. Host NIC static IP: 192.168.1.10/24
-  4. Board default U-Boot: ipaddr=192.168.1.20  serverip=192.168.1.10
-
-Host packages / sima-cli:
-  curl https://docs.sima.ai/_static/tools/sima-cli-installer.sh | bash
-  sima-cli login          # SiMa developer portal account required
-
-Terminal A — serial:
-  picocom -b 115200 /dev/ttyUSB0
-  # power-cycle board, hit a key at "Hit any key to stop autoboot"
-
-Terminal B — TFTP / flash server (Yocto image if you built one is custom;
-use sima-cli for official Modalix images, or serve your own TFTP later):
-  sudo ~/.sima-cli/.venv/bin/sima-cli bootimg \
-      --boardtype modalix --fwtype yocto -v 2.1.1 --netboot
-
-U-Boot on the board:
-  setenv boot_targets net
-  saveenv
-  boot
-
-After Linux nets in, at the host netboot> prompt:
-  c          # list clients
-  f          # flash eMMC of 192.168.1.20
-  # or: f <ip>
-
-Then power-cycle. Apply ARK overlay once at U-Boot if needed:
-  setenv dtbos ark-jaj.dtbo
-  saveenv
-  boot
-
-See docs/bringup-jaj.md for details.
-========================================================================
-EOF
-    if command -v sima-cli >/dev/null 2>&1 || [ -x "$HOME/.sima-cli/.venv/bin/sima-cli" ]; then
-        SIMA_CLI="${SIMA_CLI:-$HOME/.sima-cli/.venv/bin/sima-cli}"
-        [ -x "$SIMA_CLI" ] || SIMA_CLI="$(command -v sima-cli)"
-        echo
-        read -r -p "Start sima-cli netboot now for modalix yocto 2.1.1? [y/N] " ans
-        if [[ "${ans,,}" == "y" ]]; then
-            exec sudo "$SIMA_CLI" bootimg --boardtype modalix --fwtype yocto -v 2.1.1 --netboot
-        fi
-    else
-        echo "(sima-cli not installed yet — follow the steps above.)"
-    fi
-    exit 0
+    exec "$SCRIPT_DIR/scripts/flash_netboot.sh"
 fi
 
 if [ -z "$DEVICE" ]; then

@@ -66,14 +66,14 @@ SETUP_INSTALL_DEPS=1 ./setup.sh
 ./setup.sh /path/to/ark-modalix-yocto
 ```
 
-This clones poky scarthgap, `meta-simaai`, OE layers, and links `meta-ark-simaai`.
+This clones poky scarthgap, `meta-simaai`, OE layers, and links `ark-meta-simaai`.
 
 ## 2. Build
 
 ```bash
-./build.sh ark-jaj
+./build.sh JAJ
 # optional SWU package:
-./build.sh ark-jaj --upgrade
+./build.sh JAJ --upgrade
 ```
 
 Artifacts land in:
@@ -133,10 +133,10 @@ camera stack as `ark_jetson_kernel` JAJ). Source:
 ### Deploy to a live board (eLxr already on eMMC)
 
 ```bash
-BOARD=sima@192.168.7.50 ./scripts/deploy-jaj-dtbo.sh --reboot
+./provision.sh JAJ sima@192.168.7.50
 ```
 
-This compiles the overlay on-target, installs it to `/boot/boot-{0,1}/`, and
+This compiles the overlay on the host, installs it to `/boot/boot-{0,1}/`, and
 sets U-Boot `fdt_name=modalix-som_16g.dtb` and `dtbos=ark-jaj.dtbo`.
 
 ### Manual U-Boot
@@ -619,7 +619,7 @@ Jetson-style 40-pin silk.
 `i2c01` / `i2c02`. Redeploy if the board was last flashed without that overlay:
 
 ```bash
-BOARD=sima@192.168.7.50 ./scripts/deploy-jaj-dtbo.sh --reboot
+./provision.sh JAJ sima@192.168.7.50
 ```
 
 #### Bench test (tomorrow)
@@ -663,7 +663,7 @@ sudo I2C_BUS=0 bash /path/to/i2c-jaj-test.sh
 Userspace publisher (works without `CONFIG_SENSORS_INA238`):
 
 ```bash
-# installed by deploy-jaj-dtbo.sh
+# installed by provision.sh
 sudo systemctl enable --now ark-jaj-sys-power.service
 # or one-shot:
 sudo /usr/local/sbin/ark-jaj-sys-power.py once
@@ -753,4 +753,4 @@ prefer a real controller over bit-bang).
 | I2C0/I2C1 silent | Redeploy `ark-jaj.dtbo`; `sudo ./scripts/i2c-jaj-test.sh`. I2C0 should show **0x25** (FUSB). I2C1 empty until a device is attached on 40-pin 3/5. Do not load SiMa **uart01** overlay (steals I2C1). |
 | I2C bus numbers not 0/1 | Use script mapping (aliases → `/dev/i2c-N`); do not hard-code bus numbers across images |
 | JAJ CAN connector silent on Modalix | Expected — SoM pins 143/145 **N/A**; TJA1051 not driven; use USB/SPI CAN |
-| HDMI blank after plug / no KB/mouse | Same as PAB V3: LightDM DPMS 10 min. `cat /sys/class/drm/card0-HDMI-A-1/dpms` Off → `sudo /usr/local/sbin/ark-hdmi-unblank.sh`. Persist via `deploy-jaj-dtbo.sh` (X `-s 0 -dpms`). |
+| HDMI blank after plug / no KB/mouse | Same as PAB V3: LightDM DPMS 10 min. `cat /sys/class/drm/card0-HDMI-A-1/dpms` Off → `sudo /usr/local/sbin/ark-hdmi-unblank.sh`. Persist via `./provision.sh JAJ` (X `-s 0 -dpms`). |

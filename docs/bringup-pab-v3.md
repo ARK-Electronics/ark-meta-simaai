@@ -34,14 +34,14 @@ First-boot after a stock flash (KSZ poke + overlay):
 Or overlay only, over serial (no eth required):
 
 ```bash
-./scripts/deploy-pab-v3-dtbo.sh --serial /dev/serial/by-id/usb-FTDI_FT230X_Basic_UART_*-if00-port0 --reboot
+./provision.sh PAB_V3 --serial
 ```
 
 ## 2. Deploy board support (live eMMC, when eth works)
 
 ```bash
-# From meta-ark-simaai on the host (board DHCP or static on the office LAN)
-BOARD=sima@192.168.7.143 PASSWORD=edgeai ./scripts/deploy-pab-v3-dtbo.sh --reboot
+# From ark-meta-simaai on the host (board DHCP or static on the office LAN)
+./provision.sh PAB_V3 sima@192.168.7.143
 ```
 
 After reboot:
@@ -123,7 +123,7 @@ sudo nmcli connection up end0-dhcp
 ```
 
 To persist `netcfg=dhcp` in FAT U-Boot env, `fw_printenv` needs
-`/boot/uboot.env` via a `fw_env.config` (see `deploy-pab-v3-dtbo.sh`); the
+`/boot/uboot.env` via a `fw_env.config` (see `packaging/install.sh`); the
 eLxr default config does not point there.
 
 ## Architecture notes
