@@ -1,6 +1,9 @@
 #!/bin/bash
 # Download a released overlay package and install it on a live eLxr SoM.
 #
+# Self-contained on purpose: this is the one file a user curls from main, so it must
+# not source or exec anything else in the repo.
+#
 # Usage:
 #   ./provision_from_package.sh jaj                  # latest published JAJ
 #   ./provision_from_package.sh jaj-1.0.0            # specific tag
@@ -11,11 +14,6 @@ set -euo pipefail
 REPO="ARK-Electronics/ark-meta-simaai"
 API_URL="https://api.github.com/repos/$REPO/releases"
 CACHE_BASE="${ARK_MODALIX_CACHE:-$HOME/.ark-modalix-cache}"
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-# shellcheck source=../scripts/targets.sh
-source "$ROOT_DIR/scripts/targets.sh"
 
 usage() {
     echo "Usage: $(basename "$0") <tag|product> [user@host]"
@@ -34,10 +32,12 @@ is_product() {
 }
 
 WANT_DRAFT=0
+REBOOT=1
 args=()
 for arg in "$@"; do
     case "$arg" in
         --draft) WANT_DRAFT=1 ;;
+        --no-reboot) REBOOT=0 ;;
         -h|--help) usage ;;
         *) args+=("$arg") ;;
     esac
@@ -137,4 +137,32 @@ if [ ! -f "$PACKAGE" ]; then
 fi
 
 echo "==> $TAG  $PACKAGE"
-exec "$ROOT_DIR/provision.sh" "$PRODUCT" "$BOARD" --package "$PACKAGE"
+
+ASKPASS=$(mktemp)
+trap 'rm -f "$ASKPASS"' EXIT
+cat > "$ASKPASS" <<EOF
+#!/bin/sh
+echo '$PASSWORD'
+EOF
+chmod 700 "$ASKPASS"
+export DISPLAY= SSH_ASKPASS="$ASKPASS" SSH_ASKPASS_REQUIRE=force
+
+SSH_OPTS=(-o PreferredAuthentications=password -o PubkeyAuthentication=no -o StrictHostKeyChecking=accept-new)
+ssh_() { ssh "${SSH_OPTS[@]}" "$BOARD" "$@"; }
+
+REMOTE_DIR=/tmp/ark-overlay
+echo "==> Target: $BOARD"
+ssh_ "rm -rf $REMOTE_DIR && mkdir -p $REMOTE_DIR"
+scp "${SSH_OPTS[@]}" "$PACKAGE" "$BOARD:$REMOTE_DIR/package.tar.gz"
+ssh_ "tar -C $REMOTE_DIR -xzf $REMOTE_DIR/package.tar.gz"
+
+echo "==> Installing overlay on $BOARD"
+ssh_ "echo '$PASSWORD' | sudo -S bash $REMOTE_DIR/install.sh"
+
+if [ "$REBOOT" = "1" ]; then
+    echo "==> Rebooting"
+    ssh_ "echo '$PASSWORD' | sudo -S reboot" || true
+    echo "Wait for the board, then: ssh $BOARD 'cat /proc/device-tree/model; cat /etc/ark_modalix'"
+else
+    echo "Installed. Reboot to load the overlay."
+fi
