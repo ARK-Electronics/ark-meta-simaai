@@ -81,7 +81,7 @@ for r in json.load(sys.stdin):
     if (r.get('isDraft') or r.get('isPrerelease')) and tag.startswith(prefix):
         print(tag); sys.exit(0)
 sys.exit(1)
-" "$product" || { echo "ERROR: no draft $product release" >&2; exit 1; }
+" "$product" 2>/dev/null || { echo "ERROR: no draft $product release" >&2; exit 1; }
         return
     fi
     curl -sfL "$API_URL?per_page=100" | python3 -c "
@@ -99,7 +99,7 @@ for r in json.load(sys.stdin):
         if a.get('name') == name:
             print(tag); sys.exit(0)
 sys.exit(1)
-" "$product" || { echo "ERROR: no published $product overlay package" >&2; exit 1; }
+" "$product" 2>/dev/null || { echo "ERROR: no published $product overlay package" >&2; exit 1; }
 }
 
 if [ -z "$TAG" ]; then
@@ -121,7 +121,7 @@ for a in json.load(sys.stdin).get('assets') or []:
     if a.get('name') == name:
         print(a['browser_download_url']); sys.exit(0)
 sys.exit(1)
-" "$PACKAGE_NAME") || {
+" "$PACKAGE_NAME" 2>/dev/null) || {
             echo "==> tag $TAG is not on the public API; trying gh (draft?)"
             gh release download "$TAG" --repo "$REPO" --pattern "$PACKAGE_NAME" --dir "$CACHE_DIR"
             URL=""
