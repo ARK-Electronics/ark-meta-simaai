@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
-# One-time bring-up of a *stock* Modalix SoM on ARK Jetson PAB V3.
-#
-# Stock Modalix U-Boot programs MAC SS=100M_MII when the KSZ links at
-# 100 Mb/s, so TFTP sends no frames. This script uses USB-C serial
-# (DTR/RTS off) to unreset the KSZ. Install ark-pab-v3 U-Boot (patches
-# 0001/0002 keep MAC at 1G GMII and set XPCS C37 to copper speed) plus
-# ark-pab-v3.dtbo; then USB-C + Ethernet TFTP matches JAJ.
+# Release the PAB V3 KSZ8795 over the SoM USB-C console (DTR/RTS off) and
+# give end0 a static address so SSH works. Overlay install is ./provision.sh.
 #
 # Usage:
 #   ./scripts/pab-v3-firstboot.sh
@@ -163,12 +158,7 @@ time.sleep(2)
 print("==> serial KSZ done")
 PY
 
-echo "==> deploy ark-pab-v3.dtbo"
-PASSWORD="$PASSWORD" "$SCRIPT_DIR/deploy-pab-v3-dtbo.sh" --serial "$SERIAL"
-
 echo
 echo "Linux Ethernet should be 100 Mb/s at $BOARD_IP."
-echo "deploy-pab-v3-dtbo.sh also stages ark-jaj-usb-init.sh (FUSB301 helper;"
-echo "filenames are from JAJ — this is not ark-jaj.dtbo)."
-echo "Stock eLxr U-Boot still will not TFTP on PAB V3 until ark-pab-v3 U-Boot"
-echo "(SGMII 1G-MAC + XPCS C37 patches) is programmed from a Yocto build."
+echo "Install the overlay over SSH:"
+echo "  ./provision.sh PAB_V3 sima@$BOARD_IP"

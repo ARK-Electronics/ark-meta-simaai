@@ -169,17 +169,13 @@ cat <<EOF
 
 Next steps (from the meta-ark-simaai repo):
 
-  1. Serial console (FTDI on USB-C debug):
-       sudo usermod -aG dialout \$USER && newgrp dialout
-       picocom -b 115200 /dev/ttyUSB0
-       # power-cycle the board; stop at U-Boot with a key if needed
+  Live eLxr overlay (usual path):
+       ./provision.sh JAJ sima@<board-ip>
 
-  2. Build image:
-       ./build.sh ark-jaj
+  Yocto recovery image:
+       ./build.sh JAJ
+       ./flash.sh JAJ --netboot
 
-  3. Flash (after build, board recoverable via netboot or removable NVMe):
-       ./flash.sh --help
-
-Docs: docs/bringup-jaj.md
+Docs: README.md, docs/bringup-jaj.md
 ========================================================================
 EOF

@@ -1,0 +1,58 @@
+name: Overlay package
+
+on:
+  push:
+    tags:
+      - 'jaj-[0-9]*'
+      - 'pab-[0-9]*'
+      - 'pab-v3-[0-9]*'
+
+jobs:
+  package:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - name: Parse tag
+        id: tag
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          case "$TAG" in
+            pab-v3-*) PRODUCT="pab-v3"; VERSION="${TAG#pab-v3-}"; TARGET="PAB_V3" ;;
+            pab-*)    PRODUCT="pab";    VERSION="${TAG#pab-}";    TARGET="PAB" ;;
+            jaj-*)    PRODUCT="jaj";    VERSION="${TAG#jaj-}";    TARGET="JAJ" ;;
+            *) echo "::error::Unrecognized tag: $TAG"; exit 1 ;;
+          esac
+          echo "product=$PRODUCT" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "target=$TARGET" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+
+      - name: Install dtc
+        run: sudo apt-get update -qq && sudo apt-get install -y device-tree-compiler
+
+      - name: Pack overlay
+        run: ./packaging/generate_package.sh ${{ steps.tag.outputs.target }} ${{ steps.tag.outputs.version }}
+
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          PRODUCT="${{ steps.tag.outputs.product }}"
+          VERSION="${{ steps.tag.outputs.version }}"
+          PACKAGE="dist/ark-modalix-${PRODUCT}.tar.gz"
+          cat > /tmp/release-notes.md << EOF
+          Overlay package for stock SiMa eLxr on ${PRODUCT}.
+
+          \`\`\`
+          curl -LO https://raw.githubusercontent.com/ARK-Electronics/meta-ark-simaai/main/packaging/provision_from_package.sh
+          chmod +x provision_from_package.sh
+          BOARD=sima@<ip> ./provision_from_package.sh ${TAG}
+          \`\`\`
+          EOF
+          gh release create "$TAG" --draft \
+            --title "${PRODUCT} overlay v${VERSION}" \
+            --notes-file /tmp/release-notes.md \
+            "$PACKAGE"

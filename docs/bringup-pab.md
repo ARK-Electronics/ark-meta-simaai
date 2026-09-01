@@ -13,7 +13,7 @@ overlay** (`ark-pab.dtbo`), not a full L4T-style reflash:
 
 ```bash
 # From meta-ark-simaai on the host (board at 192.168.7.50)
-BOARD=sima@192.168.7.50 PASSWORD=edgeai ./scripts/deploy-pab-dtbo.sh --reboot
+./provision.sh PAB sima@192.168.7.50
 ```
 
 After reboot:
@@ -49,7 +49,7 @@ Same path as JAJ — Modalix boots from **on-SoM eMMC**:
 
 ```bash
 ./setup.sh                 # once
-./build.sh ark-pab
+./build.sh PAB
 ./flash.sh ark-pab --netboot
 ```
 
