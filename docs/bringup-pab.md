@@ -67,6 +67,8 @@ See [bringup-jaj.md](bringup-jaj.md) for netboot / WIC details.
 | CAM3 (J27) | 3 | CSI3 `40c9000` | 2-lane |
 
 - I2C mux: **TCA9546APWR @ 0x70** on CAM_I2C (`i2c52`), not the JAJ FSUSB42.
+- Each port is 2-lane (`data-lanes = <1 2>`, link 456 MHz). CSI0–CSI3 and their VDMA/DPHY/video nodes are enabled together in `ark-pab.dtbo`.
+- XCLR is `reset-gpios` on CAM0 (`port5` 6), CAM1 (`port5` 7), and CAM3 (`port6` 6). CAM2’s XCLR is the carrier pull-up on SODIMM 112.
 - Jetson product default: IMX219 Quad overlay (`ark_jetson_kernel` products/PAB).
 - Without modules, `imx219` I2C NACK (`-121`) is expected.
 
@@ -78,7 +80,7 @@ See [bringup-jaj.md](bringup-jaj.md) for netboot / WIC details.
 | M.2 Key E WiFi | **Unavailable** (no PCIE1) |
 | SPI0 | `nvs_spi0` → `/dev/spidev0.0` |
 | I2C0 / I2C1 | Enabled; FUSB @ 0x25; ID EEPROM @ 0x50 |
-| UART1 / UART0 | USB-C console + headers (same gold finger as JAJ) |
+| UART1 / UART0 | No-UART1 SoM: UART1 is FC Telem2 (`/dev/ttyS0`); UART0 is the header |
 | SoM CAN | **N/A** (no CAN on Modalix) |
 | Mini DisplayPort | **Not native** — PAB is Jetson DP; Modalix is HDMI on those pins |
 
@@ -87,6 +89,33 @@ See [bringup-jaj.md](bringup-jaj.md) for netboot / WIC details.
 Autopilot PAB bus, telem/GPS/CAN/PWM headers are on the **FMU** side of the
 carrier, not the Modalix SoM. Companion-computer work is Ethernet/UART/SPI/I2C/CSI
 as above; flight-controller flash is separate (PX4/ArduPilot on ARKV6X / ARKV6S).
+
+### No-UART1 SoM
+
+Current SiMa modules that connect the flight controller identify as
+`modalix-som_16g_nouart1.dtb`:
+
+```text
+SiMa.ai Modalix SoM 16Gig No HDMI No UART1 Board
+```
+
+U-Boot picks that file from the SoM id. Leave `fdt_name` alone. The older
+`modalix-som_16g.dtb` hogs `usb_uart12` high for an on-module USB-UART bridge
+this revision does not have, and that takes UART1 off the carrier.
+
+| Link | SoM | Carrier | Linux |
+|------|-----|---------|--------|
+| UART1 | SODIMM 203/205, `uart12` | Flight controller Telem2 | `/dev/ttyS0` |
+| USB0 | TUSB73x0 root port | FMU USB, muxed with Micro USB | `1-2`, `/dev/ttyACM0` |
+
+`usb_uart12` (SIO1 line 2) stays **output-low** in the base DTB. Console is
+`console=ttynull`, so nothing else owns `/dev/ttyS0`. USB0 enumerates only
+while `VBUS_SENSE_BOOTLOADER` (SODIMM 206, SIO6 line 7) is driven high. The
+PAB overlay hogs that pin. Verified on an ARKV6S: `3185:003c ARK FMU v6S.x`.
+
+PX4 leaves `MAV_1_CONFIG` at 0, so Telem2 is silent until that instance is
+pointed at TELEM2 (`102`, 921600 8N1). USB MAVLink on `/dev/ttyACM0` is
+already running.
 
 ### FMU USB (ARKV6S / ARKV6X on `lsusb`)
 
@@ -122,5 +151,6 @@ ls -l /dev/ttyACM*
 | Still “Just a Jetson” model | `dtbos` still `ark-jaj.dtbo` — redeploy PAB script + reboot |
 | No `0x70` on CAM I2C | Power, FFC seating, `i2c52` status, TCA9546 reset |
 | No ARKV6S / no `/dev/ttyACM0` | `vbus_sense_bootloader` hog high? Micro USB unplugged? FMU seated and powered? |
+| UART1 silent | Base DTB must be `modalix-som_16g_nouart1.dtb` (`usb_uart12` low). PX4 `MAV_1_CONFIG` must be TELEM2 (`102`); stock firmware leaves it at 0. |
 | Key E empty | Expected on Modalix |
 | Mini-DP no video | Expected — HDMI vs DP mismatch (see prior PAB notes) |
