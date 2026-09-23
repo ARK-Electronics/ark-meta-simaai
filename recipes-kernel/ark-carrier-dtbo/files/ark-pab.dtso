@@ -5,28 +5,15 @@
  * Cameras (schematic sheet 14 + Jetson PAB IMX219 Quad overlay):
  *   - Shared CAM_I2C → TCA9546APWR @ 0x70 → CAM0..CAM3 @ 0x10
  *   - 4× 2-lane RPi CSI FFCs: CAM0→CSI0, CAM1→CSI1, CAM2→CSI2, CAM3→CSI3
- *   - CAM0/CAM1 PWDN: port5 GPIO6/7, sensor reset-gpios (not hogs)
- *   - CAM3_PWDN: SODIMM 130 = GPIO06 = port6 GPIO6, sensor reset-gpio
- *   - CAM2_PWDN: SODIMM 112 (Jetson dual-use; carrier 3V3 pull-up, no SoM GPIO)
+ *   - CAM0/CAM1 PWDN: SiMa dual-cam pattern port5 GPIO6/7 held high
+ *   - CAM3_PWDN: SODIMM 130 = GPIO06 = port6 GPIO6 held high
+ *   - CAM2_PWDN: SODIMM 112 (Jetson dual-use; rely on carrier 3V3 pull-up)
  *   - Linux: i2c52 = CAM_I2C parent; mux creates channels for each sensor
  *
- * UART (gold-finger map, Jetson PAB carrier):
- *   - UART1 = uart12 = /dev/ttyS0. SODIMM 203/205. On the Jetson PAB this
- *     is the flight-controller Telem2 link (Jetson UART1 / ttyTHS1).
- *   - UART0 = uart42 = /dev/ttyS1 (header)
- *   - uart13 is the optional second port on the UART1 RTS/CTS pins
- *
- * No-UART1 SoM (U-Boot fdt modalix-som_16g_nouart1.dtb, model
- * "SiMa.ai Modalix SoM 16Gig No HDMI No UART1 Board"):
- *   - The on-module UART1 USB bridge is not fitted. The base DTB hogs
- *     usb_uart12 (SIO1 line 2) output-low and sets console=ttynull, so
- *     UART1 is free for Telem2. Do not drive usb_uart12 high and do not
- *     replace fdt_name with modalix-som_16g.dtb (that hog is output-high
- *     and steals the pads for the missing bridge).
- *   - USB0 to the flight controller is the TUSB73x0 root port that Linux
- *     enumerates as 1-2. It stays dark until VBUS_SENSE_BOOTLOADER
- *     (SODIMM 206, SIO6 line 7) is driven high. Verified: 3185:003c
- *     "ARK FMU v6S.x" and /dev/ttyACM0.
+ * UART (same gold-finger map as JAJ — see docs/bringup-jaj.md):
+ *   - UART1 = uart12 = ttyS0 (SoM USB-C FTDI console)
+ *   - UART0 = uart42 = ttyS1
+ *   - uart13 optional second port on UART1 RTS/CTS pins
  *
  * I2C:
  *   - I2C0: FUSB301 @ 0x25 (Type-C on SoM path)
@@ -81,6 +68,23 @@
 	};
 };
 
+/* ---- Camera PWDN enables ---- */
+&port5 {
+	cam0-pwdn-en {
+		gpio-hog;
+		gpios = <6 0>;
+		output-high;
+		line-name = "cam0_pwdn";
+	};
+
+	cam1-pwdn-en {
+		gpio-hog;
+		gpios = <7 0>;
+		output-high;
+		line-name = "cam1_pwdn";
+	};
+};
+
 /*
  * USB0_VBUS_DETn / FUSB INT path — same as JAJ: drop SoM output-low hog and
  * bias the pad so open-drain INT_N can rise.
@@ -110,6 +114,13 @@
 		gpios = <0 0>;
 		input;
 		line-name = "usb0_vbus_det";
+	};
+
+	cam3-pwdn-en {
+		gpio-hog;
+		gpios = <6 0>;
+		output-high;
+		line-name = "cam3_pwdn";
 	};
 
 	/*
@@ -197,8 +208,6 @@
 				status = "okay";
 				clocks = <&pab_xclk0>;
 				clock-names = "xclk";
-				/* XCLR, active-high run. Same pad as the Jetson quad CAM0 PWDN. */
-				reset-gpios = <&port5 6 0>;
 				rotation = <180>;
 				orientation = <2>;
 
@@ -226,7 +235,6 @@
 				status = "okay";
 				clocks = <&pab_xclk1>;
 				clock-names = "xclk";
-				reset-gpios = <&port5 7 0>;
 				rotation = <180>;
 				orientation = <2>;
 
@@ -281,8 +289,6 @@
 				status = "okay";
 				clocks = <&pab_xclk3>;
 				clock-names = "xclk";
-				/* SODIMM 130, GPIO06, port6 line 6. */
-				reset-gpios = <&port6 6 0>;
 				rotation = <180>;
 				orientation = <2>;
 
