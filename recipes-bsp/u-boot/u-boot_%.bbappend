@@ -5,6 +5,10 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 # Per-machine U-Boot GPIO defaults. Edit gpios-<machine>.cmd to add pads;
 # they are prepended to boot.scr / netboot.scr and stored as preboot in uboot.env.
 SRC_URI:append:ark-jaj = " file://gpios-ark-jaj.cmd"
+SRC_URI:append:ark-pab = " \
+    file://pab-bootdelay.py \
+    file://0003-pab-ignore-ctrlc-when-bootdelay-is-2.patch \
+"
 SRC_URI:append:ark-pab-v3 = " file://gpios-ark-pab-v3.cmd"
 
 # In-band SGMII on PAB V3 (KSZ8795 10/100): keep MAC SS at 1G GMII and
@@ -78,4 +82,24 @@ do_deploy:prepend() {
             fi
         fi
     fi
+}
+
+# Jetson PAB wires UART1 to the flight controller. U-Boot treats Telem2
+# traffic as a key during bootdelay, and a Ctrl-C byte in that stream aborts
+# the boot script after that. PAB images set bootdelay=-2 and ignore Ctrl-C
+# for the boot command. JAJ is left at bootdelay=3.
+do_deploy:append:ark-pab() {
+    py=""
+    for _d in "${UNPACKDIR}" "${WORKDIR}"; do
+        if [ -n "$_d" ] && [ -f "$_d/pab-bootdelay.py" ]; then
+            py="$_d/pab-bootdelay.py"
+            break
+        fi
+    done
+    [ -n "$py" ] || bbfatal "pab-bootdelay.py was not unpacked"
+    for bin in "${DEPLOYDIR}/u-boot.bin" "${B}/u-boot.bin"; do
+        if [ -f "$bin" ]; then
+            python3 "$py" "$bin"
+        fi
+    done
 }

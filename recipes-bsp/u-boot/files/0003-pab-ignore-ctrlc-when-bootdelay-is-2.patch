@@ -1,0 +1,39 @@
+Jetson PAB: boot even when UART1 is receiving flight-controller traffic.
+
+bootdelay=-2 is not enough on its own. If the environment lookup misses,
+this U-Boot falls back to bootdelay 3 and any Telem2 byte stops autoboot.
+Ctrl-C in the boot script stops it after that. On ark-pab, always run the
+boot command and ignore console input while it runs.
+
+diff --git a/common/autoboot.c b/common/autoboot.c
+--- a/common/autoboot.c
++++ b/common/autoboot.c
+@@ -492,20 +492,16 @@
+ {
+ 	debug("### main_loop: bootcmd=\"%s\"\n", s ? s : "<UNDEFINED>");
+ 
+-	if (s && (stored_bootdelay == -2 ||
+-		 (stored_bootdelay != -1 && !abortboot(stored_bootdelay)))) {
+-		bool lock;
+-		int prev;
+-
+-		lock = autoboot_keyed() &&
+-			!IS_ENABLED(CONFIG_AUTOBOOT_KEYED_CTRLC);
+-		if (lock)
+-			prev = disable_ctrlc(1); /* disable Ctrl-C checking */
++	/*
++	 * Jetson PAB: UART1 is flight-controller Telem2. Any byte aborts
++	 * autoboot, and a Ctrl-C byte aborts the boot script. Always run
++	 * the boot command and ignore console input while it runs.
++	 */
++	if (s) {
++		int prev = disable_ctrlc(1);
+ 
+ 		run_command_list(s, -1, 0);
+-
+-		if (lock)
+-			disable_ctrlc(prev);	/* restore Ctrl-C checking */
++		disable_ctrlc(prev);
+ 	}
+ 
+ 	if (IS_ENABLED(CONFIG_AUTOBOOT_USE_MENUKEY) &&

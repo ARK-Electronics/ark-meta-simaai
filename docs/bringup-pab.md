@@ -78,7 +78,7 @@ See [bringup-jaj.md](bringup-jaj.md) for netboot / WIC details.
 | M.2 Key E WiFi | **Unavailable** (no PCIE1) |
 | SPI0 | `nvs_spi0` → `/dev/spidev0.0` |
 | I2C0 / I2C1 | Enabled; FUSB @ 0x25; ID EEPROM @ 0x50 |
-| UART1 / UART0 | USB-C console + headers (same gold finger as JAJ) |
+| UART1 / UART0 | UART1 (SODIMM 203/205) is flight-controller Telem2. It is not the Linux console on a No-UART1 SoM (`console=ttynull`). |
 | SoM CAN | **N/A** (no CAN on Modalix) |
 | Mini DisplayPort | **Not native** — PAB is Jetson DP; Modalix is HDMI on those pins |
 
@@ -87,6 +87,15 @@ See [bringup-jaj.md](bringup-jaj.md) for netboot / WIC details.
 Autopilot PAB bus, telem/GPS/CAN/PWM headers are on the **FMU** side of the
 carrier, not the Modalix SoM. Companion-computer work is Ethernet/UART/SPI/I2C/CSI
 as above; flight-controller flash is separate (PX4/ArduPilot on ARKV6X / ARKV6S).
+
+U-Boot on the stock Modalix image uses UART1 as its console and
+`bootdelay=3`. Any byte already in that UART, including Telem2 MAVLink from
+the flight controller, is "Hit any key" and autoboot stops. After that check
+is skipped, the boot script still stops if the stream contains Ctrl-C
+(`0x03`), which MAVLink does. Linux never starts. PAB images set
+`bootdelay=-2`, skip the key check even if that value does not stick, and
+ignore Ctrl-C while the boot command runs. The Just a Jetson carrier leaves
+`bootdelay=3`.
 
 ### FMU USB (ARKV6S / ARKV6X on `lsusb`)
 
