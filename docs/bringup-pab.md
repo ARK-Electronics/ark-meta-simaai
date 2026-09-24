@@ -68,7 +68,20 @@ See [bringup-jaj.md](bringup-jaj.md) for netboot / WIC details.
 
 - I2C mux: **TCA9546APWR @ 0x70** on CAM_I2C (`i2c52`), not the JAJ FSUSB42.
 - Jetson product default: IMX219 Quad overlay (`ark_jetson_kernel` products/PAB).
+- XCLR is held high: CAM0/CAM1 on port5 GPIO6/7, CAM3 on port6 GPIO6
+  (SODIMM 130). CAM2 XCLR is the carrier pull-up on SODIMM 112.
 - Without modules, `imx219` I2C NACK (`-121`) is expected.
+
+Verified on a No-UART1 SoM with `ark-pab.dtbo` and four IMX219 modules.
+Each sensor logged `Detected IMX219 image sensor`, and each CSI receiver
+streamed 1920×1080 RAW10 (datatype `0x2b`, link 456 MHz):
+
+| Connector | I2C | Video node |
+|-----------|-----|------------|
+| CAM0 (J28) | `imx219 5-0010` | `/dev/video0` |
+| CAM1 (J25) | `imx219 6-0010` | `/dev/video1` |
+| CAM2 (J29) | `imx219 7-0010` | `/dev/video2` |
+| CAM3 (J27) | `imx219 8-0010` | `/dev/video3` |
 
 ### Shared with JAJ / Modalix
 

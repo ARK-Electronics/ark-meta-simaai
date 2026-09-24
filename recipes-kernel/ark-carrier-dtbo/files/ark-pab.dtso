@@ -5,15 +5,21 @@
  * Cameras (schematic sheet 14 + Jetson PAB IMX219 Quad overlay):
  *   - Shared CAM_I2C → TCA9546APWR @ 0x70 → CAM0..CAM3 @ 0x10
  *   - 4× 2-lane RPi CSI FFCs: CAM0→CSI0, CAM1→CSI1, CAM2→CSI2, CAM3→CSI3
- *   - CAM0/CAM1 PWDN: SiMa dual-cam pattern port5 GPIO6/7 held high
+ *   - CAM0/CAM1 PWDN: port5 GPIO6/7 held high (XCLR out of reset)
  *   - CAM3_PWDN: SODIMM 130 = GPIO06 = port6 GPIO6 held high
- *   - CAM2_PWDN: SODIMM 112 (Jetson dual-use; rely on carrier 3V3 pull-up)
+ *   - CAM2_PWDN: SODIMM 112 (Jetson dual-use; carrier 3V3 pull-up, no SoM GPIO)
  *   - Linux: i2c52 = CAM_I2C parent; mux creates channels for each sensor
+ *   - Bench (No-UART1 SoM, four IMX219): each port streamed 1920x1080 RAW10.
+ *     CAM0 i2c 5-0010 / CSI0, CAM1 6-0010 / CSI1, CAM2 7-0010 / CSI2,
+ *     CAM3 8-0010 / CSI3. Link rate 456 MHz, 2 lanes.
  *
- * UART (same gold-finger map as JAJ — see docs/bringup-jaj.md):
- *   - UART1 = uart12 = ttyS0 (SoM USB-C FTDI console)
- *   - UART0 = uart42 = ttyS1
- *   - uart13 optional second port on UART1 RTS/CTS pins
+ * UART (gold finger, Jetson PAB):
+ *   - UART1 = uart12 = /dev/ttyS0, SODIMM 203/205. On this carrier that is
+ *     flight-controller Telem2, not a Linux console. The No-UART1 base DTB
+ *     keeps usb_uart12 low and console=ttynull. Do not switch fdt_name to
+ *     modalix-som_16g.dtb; that hog drives usb_uart12 high.
+ *   - UART0 = uart42 = /dev/ttyS1
+ *   - uart13 is the optional second port on the UART1 RTS/CTS pins
  *
  * I2C:
  *   - I2C0: FUSB301 @ 0x25 (Type-C on SoM path)
